@@ -1,0 +1,80 @@
+include:
+  - 'http://git.shensz.local/FE/gitlab-ci-templates/raw/master/common/user-phone-map.yml'
+
+.DefaultJob:
+  tags:
+    - share-runner
+  dependencies: []
+  variables:
+    GIT_STRATEGY: none
+
+# 执行顺序
+stages:
+  - clear
+  - build
+  - deploy
+
+# 删除可能存在的上一次构建内容
+BUILD_CLEAR:
+  extends: .DefaultJob
+  stage: clear
+  only:
+    - /^v[0-9]+\.[0-9]+\.*[\d]*$|^v[0-9]+\.[0-9]+\.*[\d]*-(beta)*[\d]*$/
+    - /^feature\/test$/
+  script:
+    - rm -rf ./build
+    - rm -rf ./pkgs
+    - rm -rf ./dist
+    - rm -rf ./public
+
+# 打包构建
+BUILD:
+  extends: .DefaultJob
+  stage: build
+  only:
+    - /^v[0-9]+\.[0-9]+\.*[\d]*$|^v[0-9]+\.[0-9]+\.*[\d]*-(beta)*[\d]*$/
+    - /^feature\/test$/
+  variables:
+    NODE_VERSION: 12.13.1
+    GIT_STRATEGY: fetch
+  cache:
+    key: '$CI_PROJECT_PATH'
+    paths:
+      - node_modules
+  before_script:
+    - nvm use $NODE_VERSION
+    - yarn
+    - time=`date +'%Y-%m-%d-%H%M%S'`
+    - filename="$CI_PROJECT_NAME-$GITLAB_USER_NAME-$CI_COMMIT_REF_NAME-$time.tgz"
+    - filename=`echo $filename | sed 's/\//-/g'`
+    - mkdir -p dist
+    - mkdir -p dist/server
+  script:
+    - CI=false npm run build
+    - cp -r build dist/
+    - cp -r ./conf dist/
+    - cp -r ./server/package.json dist/
+    - cp -r ./server/app.js dist/server/
+    - cp -r ./server/index.js dist/server/
+    - cp -r ./Procfile dist/
+    - cd dist && tar -czf $filename *
+    - cd .. && mkdir -p pkgs
+    - mv dist/$filename pkgs
+  artifacts:
+    name: '$CI_PROJECT_PATH-$CI_COMMIT_REF_NAME-$CI_PIPELINE_IID-build'
+    paths:
+      - ./pkgs
+    when: on_success
+    expire_in: 1 week
+
+# tag / test分支
+BUILD_DEPLOY:
+  extends: .DefaultJob
+  stage: deploy
+  only:
+    - /^v[0-9]+\.[0-9]+\.*[\d]*$|^v[0-9]+\.[0-9]+\.*[\d]*-(beta)*[\d]*$/
+    - /^feature\/test$/
+  dependencies:
+    - BUILD
+  script:
+    - upload2uae -pkg_path ./pkgs -app_id 247

@@ -1,0 +1,12 @@
+{
+  "root": true,
+  "globals": {
+    "lib": true,
+    "React": true,
+    "IUmiRouteConfig": true
+  },
+  "env": {
+    "browser": true,
+    "serviceworker": true
+  }
+}

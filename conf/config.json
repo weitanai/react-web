@@ -1,0 +1,17 @@
+{
+  "description": "UAE DEV 会自动修改这个文件中的配置，请勿手工修改",
+  "proxyMap": [
+    {
+      "routePath": "/portalapi",
+      "target": "http://grportalapi.uae.shensz.local"
+    },
+    {
+      "routePath": "/tikuapi",
+      "target": "http://tikuapi.uae.shensz.local"
+    },
+    {
+      "routePath": "/pauthapi",
+      "target": "http://portalauthapi.uae.shensz.local"
+    }
+  ]
+}
